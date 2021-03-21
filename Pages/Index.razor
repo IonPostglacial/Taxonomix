@@ -1,0 +1,23 @@
+@page "/"
+@using Taxonomix.Data
+@inject DatasetsService DatasetsService
+
+<h2>Select xxxxx</h2>
+<section class="states-grid">
+    <button type="button">A</button>
+    <button type="button">B</button>
+    <button type="button">C</button>
+    <button type="button">D</button>
+    <button type="button">E</button>
+    <button type="button">F</button>
+    <button type="button">G</button>
+</section>
+
+@code {
+    private Dataset dataset;
+
+    protected override async Task OnInitializedAsync()
+    {
+        dataset = await DatasetsService.GetDatasetAsync("1");
+    }
+}
