@@ -4,7 +4,7 @@ namespace Taxonomix.Data
 {
     public class Character : Item
     {
-        List<State> States { get; set; }
-        List<State> RequiredStates { get; set; }
+        public List<State> States { get; set; } = new();
+        public List<State> RequiredStates { get; set; } = new();
     }
 }

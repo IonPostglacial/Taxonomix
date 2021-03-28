@@ -1,13 +1,22 @@
 @inherits LayoutComponentBase
+@using System.IO
+@using Microsoft.AspNetCore.Components
+@using Taxonomix.Data
+@inject DatasetsService DatasetsService
 
-<body id="app">
+<div id="app">
     <header class="top-header">
-        <h1>Sutelob</h1>
+        @if (DatasetsService.SelectedDataset == null)
+        {
+            <h1>Taxonomix</h1>
+        } else {
+            <h1>@DatasetsService.SelectedDataset.Id</h1>
+        }
     </header>
     <nav class="sidebar">
         <NavMenu></NavMenu>
     </nav>
-    <main role="main">
+    <main role="main" class="relative v-scroll">
         @Body
     </main>
-</body>
+</div>

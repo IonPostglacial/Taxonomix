@@ -1,3 +1,39 @@
 @page "/taxons-list"
+@using Taxonomix.Data
+@inject DatasetsService DatasetsService
 
 <h2>Taxons List</h2>
+@if (isLoading)
+{
+    <p>Loading</p>
+}
+<div class="flexbox">
+    <label>Select a Dataset</label>
+    <select @onchange="OnSelectDataset">
+        @foreach(var datasetId in DatasetsService.GetDatasetIds())
+        {
+            <option value="@datasetId">@datasetId</option>
+        }
+    </select>
+    <InputFile name="upload-file" id="upload-file" class="hidden" OnChange="@OnUpload"></InputFile>
+    <label class="button" for="upload-file">Upload a new Dataset</label>
+</div>
+
+@code {
+    private bool isLoading = false;
+
+    public async Task OnUpload(InputFileChangeEventArgs e)
+    {
+        isLoading = true;
+        var dataset = await Taxonomix.DataExchange.HazoFile.parse(e.File.OpenReadStream(10_000_000));
+        DatasetsService.AddDataset(dataset);
+        isLoading = false;
+        if (DatasetsService.SelectedDataset == null)
+            DatasetsService.SelectDataset(dataset.Id);
+    }
+
+    public void OnSelectDataset(ChangeEventArgs args)
+    {
+        DatasetsService.SelectDataset(args.Value.ToString());
+    }
+}

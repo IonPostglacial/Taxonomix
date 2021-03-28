@@ -2,22 +2,93 @@
 @using Taxonomix.Data
 @inject DatasetsService DatasetsService
 
-<h2>Select xxxxx</h2>
-<section class="states-grid">
-    <button type="button">A</button>
-    <button type="button">B</button>
-    <button type="button">C</button>
-    <button type="button">D</button>
-    <button type="button">E</button>
-    <button type="button">F</button>
-    <button type="button">G</button>
-</section>
+@if (currentCharacter != null)
+{
+    <h2 class="sticky white-bg underlined">@currentCharacter.Name.Scientific ?</h2>
+    <p>Potential results : @potentialTaxons.Count</p>
+    <ul>
+        @foreach (var taxon in potentialTaxons)
+        {
+            <li>@taxon.Name.Scientific</li>
+        }
+    </ul>
+    <section class="states-grid">
+    @foreach (var state in currentCharacter.States)
+        {
+            <button type="button" class="square" @onclick="() => OnStateSelected(state)">
+                @foreach (var pic in state.Pictures)
+                {
+                    <img src="@pic.Source" />
+                }
+                @state.Name.Scientific
+            </button>
+        }
+    </section>
+}
 
 @code {
-    private Dataset dataset;
+    private Character currentCharacter;
+    private HashSet<State> selectedStates = new();
+    private HashSet<Taxon> potentialTaxons = new();
 
-    protected override async Task OnInitializedAsync()
+    void OnStateSelected(State state)
     {
-        dataset = await DatasetsService.GetDatasetAsync("1");
+        if (selectedStates.Count == 0)
+        {
+            potentialTaxons = InitializePotentialTaxons(state);
+        }
+        else
+        {
+            potentialTaxons = FilterTaxonsWithState(potentialTaxons, state);
+        }
+        selectedStates.Add(state);
+    }
+
+    IEnumerable<Taxon> GetAllTaxonsWithState(Hierarchy<Taxon> hierarchy, State state)
+    {
+        if (hierarchy.Entry.States.Contains(state))
+            yield return hierarchy.Entry;
+        foreach(var child in hierarchy.Children)
+        {
+            foreach(var result in GetAllTaxonsWithState(child, state))
+            {
+                yield return result;
+            }
+        }
+    }
+
+    HashSet<Taxon> InitializePotentialTaxons(State state)
+    {
+        var dataset = DatasetsService.SelectedDataset;
+        if (dataset == null)
+        {
+            return new();
+        }
+        else
+        {
+            var taxonsWithState = new HashSet<Taxon>();
+            foreach (var taxon in dataset.Taxons)
+            {
+                foreach(var taxonWithState in GetAllTaxonsWithState(taxon, state))
+                {
+                    taxonsWithState.Add(taxonWithState);
+                }
+            }
+            return taxonsWithState;
+        }
+    }
+
+    HashSet<Taxon> FilterTaxonsWithState(HashSet<Taxon> selectedTaxons, State state)
+    {
+        return selectedTaxons.Where(t => t.States.Contains(state)).ToHashSet();
+    }
+
+    protected override void OnInitialized()
+    {
+        var data = DatasetsService.SelectedDataset;
+        if (data != null && data.Characters.Count > 0)
+        {
+            currentCharacter = data.Characters.First().Entry;
+        }
     }
 }

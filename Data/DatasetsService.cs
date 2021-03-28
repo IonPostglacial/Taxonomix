@@ -1,19 +1,36 @@
 using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace Taxonomix.Data
 {
     public class DatasetsService
     {
-        private static readonly Dictionary<string, Dataset> Datasets = new Dictionary<string, Dataset>
-        {
-            { "1", new Dataset() }
-        };
+        private readonly Dictionary<string, Dataset> Datasets = new();
+        public Dataset SelectedDataset { get; private set; }
 
-        public Task<Dataset> GetDatasetAsync(string id)
+        public void AddDataset(Dataset dataset)
+        {
+            Datasets.Add(dataset.Id, dataset);
+        }
+
+        public void SelectDataset(string datasetKey)
+        {
+            Datasets.TryGetValue(datasetKey, out var dataset);
+            if (dataset != null)
+                SelectedDataset = dataset;
+        }
+
+        public IEnumerable<string> GetDatasetIds()
+        {
+            foreach (var dataset in Datasets)
+            {
+                yield return dataset.Key;
+            }
+        }
+
+        public Dataset GetDataset(string id)
         {
             Datasets.TryGetValue(id, out var dataset);
-            return Task.FromResult<Dataset>(dataset);
+            return dataset;
         }
     }
 }
