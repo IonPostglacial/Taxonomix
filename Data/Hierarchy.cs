@@ -7,5 +7,17 @@ namespace Taxonomix.Data
         public int Id { get; set; }
         public T Entry { get; set; }
         public List<Hierarchy<T>> Children { get; set; }
+
+        public IEnumerable<T> IterTree()
+        {
+            yield return Entry;
+            foreach (var child in Children)
+            {
+                foreach (var result in child.IterTree())
+                {
+                    yield return result;
+                }
+            }
+        }
     }
 }

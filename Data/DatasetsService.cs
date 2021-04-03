@@ -16,7 +16,9 @@ namespace Taxonomix.Data
         {
             Datasets.TryGetValue(datasetKey, out var dataset);
             if (dataset != null)
+            {
                 SelectedDataset = dataset;
+            }
         }
 
         public IEnumerable<string> GetDatasetIds()

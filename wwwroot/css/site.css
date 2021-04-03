@@ -102,8 +102,8 @@ h2 {
 
 button,
 .button {
-    padding: 0;
-    margin: 0;
+    padding: 0.5ch;
+    margin: 0 0.5ch;
     background-color: lightgrey;
     border: 1px solid darkgray;
     border-radius: 0.5ch;

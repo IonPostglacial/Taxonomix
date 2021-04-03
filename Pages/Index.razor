@@ -4,6 +4,12 @@
 
 @if (currentCharacter != null)
 {
+    <div class="flexbox">Taxon Description :
+        @foreach (var (character, state) in selections)
+        {
+            <button type="button">@character.Name.Scientific : &nbsp; @state.Name.Scientific</button>
+        }
+    </div>
     <h2 class="sticky white-bg underlined">@currentCharacter.Name.Scientific ?</h2>
     <p>Potential results : @potentialTaxons.Count</p>
     <ul>
@@ -28,12 +34,13 @@
 
 @code {
     private Character currentCharacter;
-    private HashSet<State> selectedStates = new();
+    private HashSet<(Character, State)> selections = new();
+    private Stack<Character> undescribedCharacters = new();
     private HashSet<Taxon> potentialTaxons = new();
 
     void OnStateSelected(State state)
     {
-        if (selectedStates.Count == 0)
+        if (selections.Count == 0)
         {
             potentialTaxons = InitializePotentialTaxons(state);
         }
@@ -41,13 +48,16 @@
         {
             potentialTaxons = FilterTaxonsWithState(potentialTaxons, state);
         }
-        selectedStates.Add(state);
+        selections.Add((currentCharacter, state));
+        currentCharacter = undescribedCharacters.Pop();
     }
 
     IEnumerable<Taxon> GetAllTaxonsWithState(Hierarchy<Taxon> hierarchy, State state)
     {
         if (hierarchy.Entry.States.Contains(state))
+        {
             yield return hierarchy.Entry;
+        }
         foreach(var child in hierarchy.Children)
         {
             foreach(var result in GetAllTaxonsWithState(child, state))
@@ -88,7 +98,8 @@
         var data = DatasetsService.SelectedDataset;
         if (data != null && data.Characters.Count > 0)
         {
-            currentCharacter = data.Characters.First().Entry;
+            undescribedCharacters = new(data.Characters.SelectMany(c => c.IterTree()));
+            currentCharacter = undescribedCharacters.Pop();
         }
     }
 }

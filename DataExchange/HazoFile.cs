@@ -200,8 +200,8 @@ namespace Taxonomix.DataExchange
             return new Dataset
             {
                 Id = id,
-                Characters = characters.Select(c => c.Decode(charactersByIds, statesByIds)).ToList(),
-                Taxons = taxons.Select(t => t.Decode(taxonsByIds, statesByIds)).ToList(),
+                Characters = characters.Where(c => c.topLevel).Select(c => c.Decode(charactersByIds, statesByIds)).ToList(),
+                Taxons = taxons.Where(t => t.topLevel).Select(t => t.Decode(taxonsByIds, statesByIds)).ToList(),
             };
         }
     }
