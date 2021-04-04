@@ -10,32 +10,50 @@
             <button type="button">@character.Name.Scientific : &nbsp; @state.Name.Scientific</button>
         }
     </div>
-    <h2 class="sticky white-bg underlined">@currentCharacter.Name.Scientific ?</h2>
-    <p>Potential results : @potentialTaxons.Count</p>
-    <ul>
-        @foreach (var taxon in potentialTaxons)
-        {
-            <li>@taxon.Name.Scientific</li>
-        }
-    </ul>
-    <section class="states-grid">
-    @foreach (var state in currentCharacter.States)
-        {
-            <button type="button" class="square" @onclick="() => OnStateSelected(state)">
-                @foreach (var pic in state.Pictures)
+    @if (selections.Count > 0 && potentialTaxons.Count == 0)
+    {
+        <button type="button" @onclick="OnBack">Back</button>
+        <p>No Taxon matched the selected states</p>
+    }
+    else if (potentialTaxons.Count == 1)
+    {
+        <p>Taxon identified : @potentialTaxons.First().Name.Scientific</p>
+    }
+    else
+    {
+        <h2 class="sticky white-bg underlined">@currentCharacter.Name.Scientific ?</h2>
+        <button type="button" @onclick="OnBack">Back</button>
+        <button type="button" @onclick="OnPassCharacter">Pass</button>
+        <div class="flexbox">
+            <section class="states-grid flex-1">
+                @foreach (var state in currentCharacter.States)
                 {
-                    <img src="@pic.Source" />
+                    <button type="button" class="square" @onclick="() => OnStateSelected(state)">
+                        @foreach (var pic in state.Pictures)
+                        {
+                            <img src="@pic.Source" />
+                        }
+                        @state.Name.Scientific
+                    </button>
                 }
-                @state.Name.Scientific
-            </button>
-        }
-    </section>
+            </section>
+            <div>
+                <p>Potential results : @potentialTaxons.Count</p>
+                <ul>
+                    @foreach (var taxon in potentialTaxons)
+                    {
+                        <li>@taxon.Name.Scientific</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
 }
 
 @code {
     private Character currentCharacter;
-    private HashSet<(Character, State)> selections = new();
-    private Stack<Character> undescribedCharacters = new();
+    private Stack<(State, Character)> selections = new();
+    private HashSet<Character> undescribedCharacters = new();
     private HashSet<Taxon> potentialTaxons = new();
 
     void OnStateSelected(State state)
@@ -48,19 +66,38 @@
         {
             potentialTaxons = FilterTaxonsWithState(potentialTaxons, state);
         }
-        selections.Add((currentCharacter, state));
-        currentCharacter = undescribedCharacters.Pop();
+        selections.Push((state, currentCharacter));
+        currentCharacter = PickUndescribedCharacter();
     }
 
-    IEnumerable<Taxon> GetAllTaxonsWithState(Hierarchy<Taxon> hierarchy, State state)
+    void OnBack()
     {
-        if (hierarchy.Entry.States.Contains(state))
+        var (state, character) = selections.Pop();
+        potentialTaxons = new();
+        foreach (var taxon in DatasetsService.SelectedDataset.Taxons)
+        {
+            foreach (var taxonWithState in GetAllTaxonsWithStates(taxon, selections.Select(sel => sel.Item1).ToArray()))
+            {
+                potentialTaxons.Add(taxonWithState);
+            }
+        }
+        currentCharacter = character;
+    }
+
+    void OnPassCharacter()
+    {
+        currentCharacter = PickUndescribedCharacter() ?? currentCharacter;
+    }
+
+    IEnumerable<Taxon> GetAllTaxonsWithStates(Hierarchy<Taxon> hierarchy, params State[] states)
+    {
+        if (hierarchy.Entry.States.Intersect(states).Count() == states.Count())
         {
             yield return hierarchy.Entry;
         }
-        foreach(var child in hierarchy.Children)
+        foreach (var child in hierarchy.Children)
         {
-            foreach(var result in GetAllTaxonsWithState(child, state))
+            foreach (var result in GetAllTaxonsWithStates(child, states))
             {
                 yield return result;
             }
@@ -79,7 +116,7 @@
             var taxonsWithState = new HashSet<Taxon>();
             foreach (var taxon in dataset.Taxons)
             {
-                foreach(var taxonWithState in GetAllTaxonsWithState(taxon, state))
+                foreach (var taxonWithState in GetAllTaxonsWithStates(taxon, state))
                 {
                     taxonsWithState.Add(taxonWithState);
                 }
@@ -93,13 +130,31 @@
         return selectedTaxons.Where(t => t.States.Contains(state)).ToHashSet();
     }
 
+    Character PickUndescribedCharacter()
+    {
+        Character character = null;
+        do
+        {
+            foreach (var ch in undescribedCharacters)
+            {
+                if (ch.RequiredStates.All(state => selections.Any(sel => sel.Item1.Id == state.Id)))
+                {
+                    character = ch;
+                    break;
+                }
+            }
+            undescribedCharacters.Remove(character);
+        } while (undescribedCharacters.Count > 0 && character?.States.Count == 0);
+        return character;
+    }
+
     protected override void OnInitialized()
     {
         var data = DatasetsService.SelectedDataset;
         if (data != null && data.Characters.Count > 0)
         {
             undescribedCharacters = new(data.Characters.SelectMany(c => c.IterTree()));
-            currentCharacter = undescribedCharacters.Pop();
+            currentCharacter = PickUndescribedCharacter() ?? currentCharacter;
         }
     }
 }
