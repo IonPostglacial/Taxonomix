@@ -192,6 +192,8 @@ namespace Taxonomix.DataExchange
         public EncodedField[] extraFields { get; set; }
         public Dictionary<string, EncodedDictionaryEntry> dictionaryEntries { get; set; }
 
+        
+
         public Dataset Decode()
         {
             var statesByIds = states.Select(s => s.Decode()).ToDictionary(s => s.Id);
@@ -208,7 +210,7 @@ namespace Taxonomix.DataExchange
 
     public class HazoFile
     {
-        public static async Task<Dataset> parse(Stream stream)
+        public static async Task<Dataset> Parse(Stream stream)
         {
             var encodedDataset = await JsonSerializer.DeserializeAsync<EncodedDataset>(stream);
             return encodedDataset.Decode();

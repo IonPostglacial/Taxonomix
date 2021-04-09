@@ -2,7 +2,6 @@
 @using Taxonomix.Data
 @inject DatasetsService DatasetsService
 
-<h2>Taxons List</h2>
 @if (isLoading)
 {
     <p>Loading</p>
@@ -15,17 +14,57 @@
             <option value="@datasetId">@datasetId</option>
         }
     </select>
-    <InputFile name="upload-file" id="upload-file" class="hidden" OnChange="@OnUpload"></InputFile>
-    <label class="button" for="upload-file">Upload a new Dataset</label>
+    <InputFile name="upload-json" id="upload-json" class="hidden" OnChange="@OnUploadJson"></InputFile>
+    <label class="button" for="upload-json">Upload a new Dataset</label>
+    <InputFile name="upload-csv" id="upload-csv" class="hidden" OnChange="@OnUploadCsv"></InputFile>
+    <label class="button" for="upload-csv">Upload a new CSV</label>
+</div>
+
+<h2>Taxons List</h2>
+<div class="flexbox">
+    <ul class="v-scroll">
+        @foreach (var taxon in DatasetsService.SelectedDataset?.Taxons ?? new())
+        {
+            <li><label><input type="radio" name="select-taxon" value="@taxon.Id" />@taxon.Entry.Name.Scientific @taxon.Entry.Name.Chinese</label></li>
+            <ul>
+                @foreach (var child in taxon.Children)
+                {
+                    <li><label><input type="radio" name="select-taxon" value="@child.Id" />@child.Entry.Name.Scientific</label></li>
+                    <ul>
+                        @foreach (var subchild in child.Children)
+                        {
+                            <li><label><input type="radio" name="select-taxon" value="@subchild.Id" />@subchild.Entry.Name.Scientific @subchild.Entry.Name.Chinese</label></li>
+                        }
+                    </ul>
+                }
+            </ul>
+        }
+    </ul>
+    <p class="flex-1">
+        Hello
+    </p>
 </div>
 
 @code {
     private bool isLoading = false;
 
-    public async Task OnUpload(InputFileChangeEventArgs e)
+    public async Task OnUploadJson(InputFileChangeEventArgs e)
     {
         isLoading = true;
-        var dataset = await Taxonomix.DataExchange.HazoFile.parse(e.File.OpenReadStream(10_000_000));
+        var dataset = await Taxonomix.DataExchange.HazoFile.Parse(e.File.OpenReadStream(40_000_000));
+        DatasetsService.AddDataset(dataset);
+        isLoading = false;
+        if (DatasetsService.SelectedDataset == null)
+            DatasetsService.SelectDataset(dataset.Id);
+    }
+    public async Task OnUploadCsv(InputFileChangeEventArgs e)
+    {
+        isLoading = true;
+        var dataset = new Dataset
+        {
+            Id = e.File.Name,
+            Taxons = await Taxonomix.DataExchange.TreeCsv.Parse(e.File.OpenReadStream(40_000_000))
+        };
         DatasetsService.AddDataset(dataset);
         isLoading = false;
         if (DatasetsService.SelectedDataset == null)

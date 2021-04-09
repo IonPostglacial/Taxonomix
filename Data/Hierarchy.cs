@@ -6,7 +6,7 @@ namespace Taxonomix.Data
     {
         public int Id { get; set; }
         public T Entry { get; set; }
-        public List<Hierarchy<T>> Children { get; set; }
+        public List<Hierarchy<T>> Children { get; set; } = new();
 
         public IEnumerable<T> IterTree()
         {
