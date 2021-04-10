@@ -19,5 +19,17 @@ namespace Taxonomix.Data
                 }
             }
         }
+
+        public IEnumerable<(T, Hierarchy<T>)> AllChildren()
+        {
+            foreach (var child in Children)
+            {
+                yield return (this.Entry, child);
+                foreach (var result in child.AllChildren())
+                {
+                    yield return result;
+                }
+            }
+        }
     }
 }

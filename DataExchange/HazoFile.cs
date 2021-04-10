@@ -13,6 +13,13 @@ namespace Taxonomix.DataExchange
         public object url { get; set; }
         public object label { get; set; }
 
+        public EncodedPhoto(Picture pic)
+        {
+            id = pic.Id;
+            label = pic.Legend;
+            url = pic.Source;
+        }
+
         public Picture Decode()
         {
             return new Picture
@@ -40,11 +47,11 @@ namespace Taxonomix.DataExchange
 		public string type { get; set; }
 		public string parentId { get; set; }
 		public bool topLevel { get; set; }
-		public string[] children { get; set; }
+		public string[] children { get; set; } = new string[]{};
 		public string name { get; set; }
 		public string nameEN { get; set; }
 		public string nameCN { get; set; }
-		public EncodedPhoto[] photos { get; set; }
+		public EncodedPhoto[] photos { get; set; } = new EncodedPhoto[]{};
 		public string author { get; set; }
 		public string vernacularName { get; set; }
 		public string vernacularName2 { get; set; }
@@ -56,6 +63,16 @@ namespace Taxonomix.DataExchange
 		public string fasc { get; set; }
 		public string page { get; set; }
 		public string detail { get; set; }
+
+        public EncodedHierarchicalItem(Item item)
+        {
+            id = item.Id;
+            name = item.Name.Scientific;
+            nameEN = item.Name.English;
+            nameCN = item.Name.Chinese;
+            vernacularName = item.Name.Vernacular;
+            photos = item.Pictures.Select(pic => new EncodedPhoto(pic)).ToArray();
+        }
 
         public Item DecodeItem()
         {
@@ -91,9 +108,18 @@ namespace Taxonomix.DataExchange
 	    public string name { get; set; }
 	    public string nameEN { get; set; }
 	    public string nameCN { get; set; }
-	    public EncodedPhoto[] photos { get; set; }
+	    public EncodedPhoto[] photos { get; set; } = new EncodedPhoto[]{};
         public string description { get; set; }
         public string color { get; set; }
+
+        public EncodedState(State state)
+        {
+            id = state.Id;
+            name = state.Name.Scientific;
+            nameEN = state.Name.English;
+            nameCN = state.Name.Chinese;
+            photos = state.Pictures.Select(pic => new EncodedPhoto(pic)).ToArray();
+        }
 
         public State Decode()
         {
@@ -109,10 +135,19 @@ namespace Taxonomix.DataExchange
 
     class EncodedCharacter : EncodedHierarchicalItem<Character>
     {
-        public string[] states { get; set; }
+        public string[] states { get; set; } = new string[]{};
 		public string inherentStateId { get; set; }
-		public string[] inapplicableStatesIds { get; set; }
-		public string[] requiredStatesId { get; set; }
+		public string[] inapplicableStatesIds { get; set; } = new string[]{};
+		public string[] requiredStatesId { get; set; } = new string[]{};
+
+        public EncodedCharacter(Hierarchy<Character> ch, Character parent) : base(ch.Entry)
+        {
+            states = ch.Entry.States.Select(s => s.Id).ToArray();
+            requiredStatesId = ch.Entry.RequiredStates.Select(s => s.Id).ToArray();
+            children = ch.Children.Select(child => child.Entry.Id).ToArray();
+            topLevel = parent == null;
+            parentId = parent?.Id;
+        }
 
         public override Character DecodeItem(Dictionary<string, State> statesByIds)
         {
@@ -143,6 +178,21 @@ namespace Taxonomix.DataExchange
     {
         public Dictionary<string, EncodedBookInfo> bookInfoByIds { get; set; }
 		public EncodedDescription[] descriptions { get; set; }
+
+        public EncodedTaxon(Hierarchy<Taxon> taxon, IEnumerable<Character> characters, Taxon parent) : base(taxon.Entry)
+        {
+            descriptions = characters
+                .Select(ch => new EncodedDescription
+                {
+                    descriptorId = ch.Id,
+                    statesIds = ch.States.Intersect(taxon.Entry.States).Select(s => s.Id).ToArray()
+                })
+                .Where(desc => desc.statesIds.Length > 0).ToArray();
+            parentId = parent?.Id;
+            topLevel = parent == null;
+            children = taxon.Children.Select(child => child.Entry.Id).ToArray();
+            bookInfoByIds = new();
+        }
 
         public override Taxon DecodeItem(Dictionary<string, State> statesByIds)
         {
@@ -192,7 +242,30 @@ namespace Taxonomix.DataExchange
         public EncodedField[] extraFields { get; set; }
         public Dictionary<string, EncodedDictionaryEntry> dictionaryEntries { get; set; }
 
-        
+        public EncodedDataset(Dataset dataset)
+        {
+            var allCharacters = dataset.Characters.SelectMany(ch => ch.IterTree());
+            id = dataset.Id;
+            taxons = dataset.Taxons
+                .SelectMany(t => {
+                    var topLevel = new EncodedTaxon[]{new EncodedTaxon(t, allCharacters, null)};
+                    var children = t.AllChildren()
+                            .Where(child => child.Item2.Entry.Id != t.Entry.Id)
+                            .Select(child => new EncodedTaxon(child.Item2, allCharacters, child.Item1));
+                    return topLevel.Concat(children);
+                }).ToArray();
+            characters = dataset.Characters.SelectMany(ch => {
+                    var topLevel = new EncodedCharacter[]{new EncodedCharacter(ch, null)};
+                    var children = ch.AllChildren()
+                            .Where(child => child.Item2.Entry.Id != ch.Entry.Id)
+                            .Select(child => new EncodedCharacter(child.Item2, child.Item1));
+                    return topLevel.Concat(children);
+                }).ToArray();
+            states = allCharacters.SelectMany(ch => ch.States.Select(s => new EncodedState(s))).ToArray();
+            books = new EncodedBook[] {};
+            extraFields = new EncodedField[]{};
+            dictionaryEntries = new();
+        }
 
         public Dataset Decode()
         {
@@ -214,6 +287,11 @@ namespace Taxonomix.DataExchange
         {
             var encodedDataset = await JsonSerializer.DeserializeAsync<EncodedDataset>(stream);
             return encodedDataset.Decode();
+        }
+
+        public static string Generate(Dataset dataset)
+        {
+            return JsonSerializer.Serialize(new EncodedDataset(dataset), new() { IgnoreNullValues = true });
         }
     }
 }

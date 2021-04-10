@@ -1,6 +1,9 @@
 @page "/taxons-list"
 @using Taxonomix.Data
+@using Taxonomix.Utils
+
 @inject DatasetsService DatasetsService
+@inject IJSRuntime js
 
 @if (isLoading)
 {
@@ -18,6 +21,7 @@
     <label class="button" for="upload-json">Upload a new Dataset</label>
     <InputFile name="upload-csv" id="upload-csv" class="hidden" OnChange="@OnUploadCsv"></InputFile>
     <label class="button" for="upload-csv">Upload a new CSV</label>
+    <button type="button" @onclick="ExportHazo">Export Dataset</button>
 </div>
 
 <h2>Taxons List</h2>
@@ -74,5 +78,16 @@
     public void OnSelectDataset(ChangeEventArgs args)
     {
         DatasetsService.SelectDataset(args.Value.ToString());
+    }
+
+    public async Task ExportHazo()
+    {
+        var content = "";
+        var dataset = DatasetsService.SelectedDataset;
+        if (dataset != null)
+        {
+            content = Taxonomix.DataExchange.HazoFile.Generate(dataset);
+        }
+        await FileUtil.SaveAs(js, "dataset.hazo.json", content);
     }
 }

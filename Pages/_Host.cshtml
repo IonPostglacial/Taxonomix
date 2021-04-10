@@ -14,6 +14,22 @@
     <base href="~/" />
     <link href="css/site.css" rel="stylesheet" />
     <link href="Taxonomix.styles.css" rel="stylesheet" />
+    <script>
+        (() => {
+            window.saveAsFile = function(filename, content) {
+                const file = new File([content], filename, { type: "application/json" });
+                const exportUrl = URL.createObjectURL(file);
+
+                const a = document.createElement("a");
+                document.body.appendChild(a);
+                a.href = exportUrl;
+                a.download = filename;
+                a.target = "_self";
+                a.click();
+                URL.revokeObjectURL(exportUrl);
+            }
+        })();
+    </script>
 </head>
 <body>
     <component type="typeof(App)" render-mode="ServerPrerendered" />
