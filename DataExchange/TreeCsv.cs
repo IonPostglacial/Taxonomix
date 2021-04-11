@@ -133,7 +133,7 @@ namespace Taxonomix.DataExchange
                             {
                                 Scientific = record.Specie,
                                 Chinese = record.ChineseName,
-                                French = record.FrenchName,
+                                Vernacular = record.FrenchName,
                             }
                         }
                     };
