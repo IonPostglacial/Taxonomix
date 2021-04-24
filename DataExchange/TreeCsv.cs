@@ -85,6 +85,10 @@ namespace Taxonomix.DataExchange
             var taxonId = 0;
             foreach (var record in records)
             {
+                if (record.Genus == "Cordyline")
+                {
+                    System.Console.WriteLine($"{record.Family} {record.Genus} {record.Specie}");
+                }
                 Hierarchy<Taxon> genus, family, specie;
                 if (!familiesByName.TryGetValue(record.Family, out family))
                 {
@@ -104,7 +108,7 @@ namespace Taxonomix.DataExchange
                     familiesByName.Add(family.Entry.Name.Scientific, family);
                     result.Add(family);
                 }
-                if (!genusByName.TryGetValue(record.Genus, out genus))
+                if (!genusByName.TryGetValue(record.Family + record.Genus, out genus))
                 {
                     taxonId++;
                     genus = new Hierarchy<Taxon>
@@ -118,10 +122,10 @@ namespace Taxonomix.DataExchange
                             }
                         }
                     };
-                    genusByName.Add(genus.Entry.Name.Scientific, genus);
+                    genusByName.Add(record.Family + record.Genus, genus);
                     family.Children.Add(genus);
                 }
-                if (!speciesByName.TryGetValue(record.Specie, out specie))
+                if (!speciesByName.TryGetValue(record.Family + record.Genus + record.Specie, out specie))
                 {
                     taxonId++;
                     specie = new Hierarchy<Taxon>
@@ -137,7 +141,7 @@ namespace Taxonomix.DataExchange
                             }
                         }
                     };
-                    speciesByName.Add(specie.Entry.Name.Scientific, specie);
+                    speciesByName.Add(record.Family + record.Genus + record.Specie, specie);
                     genus.Children.Add(specie);
                 }
             }
