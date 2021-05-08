@@ -48,7 +48,6 @@ namespace Taxonomix.DataExchange
     {
         public string id { get; set; }
 		public string type { get; set; }
-		public string parentId { get; set; }
 		public bool topLevel { get; set; }
 		public string[] children { get; set; } = new string[]{};
 		public string name { get; set; }
@@ -154,7 +153,6 @@ namespace Taxonomix.DataExchange
                 requiredStatesId = ch.Entry.RequiredStates.Select(s => s.Id).ToArray(),
                 children = ch.Children.Select(child => child.Entry.Id).ToArray(),
                 topLevel = parent == null,
-                parentId = parent?.Id,
             };
             EncodedHierarchicalItem<Character>.From(encoded, ch.Entry);
             return encoded;
@@ -201,7 +199,6 @@ namespace Taxonomix.DataExchange
                         statesIds = ch.States.Intersect(taxon.Entry.States).Select(s => s.Id).ToArray()
                     })
                     .Where(desc => desc.statesIds.Length > 0).ToArray(),
-                parentId = parent?.Id,
                 topLevel = parent == null,
                 children = taxon.Children.Select(child => child.Entry.Id).ToArray(),
                 bookInfoByIds = new(),
