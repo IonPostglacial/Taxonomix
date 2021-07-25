@@ -2,15 +2,17 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Taxonomix.Data;
 
 namespace Taxonomix.Migrations
 {
     [DbContext(typeof(TaxonomyContext))]
-    partial class TaxonomyContextModelSnapshot : ModelSnapshot
+    [Migration("20210725094415_NewScheme")]
+    partial class NewScheme
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
